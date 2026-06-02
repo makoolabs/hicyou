@@ -3,12 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
-import { Github, ExternalLink, Crown, DollarSign, FileText } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Github, ExternalLink, DollarSign, FileText } from "lucide-react";
 import { directory } from "@/directory.config";
 import Logo from "@/public/logo.svg";
 import { useEffect, useState } from "react";
 
 export const Footer = () => {
+  const t = useTranslations("common");
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -72,14 +74,14 @@ export const Footer = () => {
 
           {/* Second Column - Discover */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Discover</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t("discover")}</h3>
             <ul className="space-y-3">
               <li>
                 <Link
                   href="/about"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  About
+                  {t("about")}
                 </Link>
               </li>
               <li>
@@ -87,7 +89,7 @@ export const Footer = () => {
                   href="/c"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Categories
+                  {t("categories")}
                 </Link>
               </li>
               <li>
@@ -95,7 +97,7 @@ export const Footer = () => {
                   href="/submit"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Submit Project
+                  {t("submitProject")}
                 </Link>
               </li>
             </ul>
@@ -103,7 +105,7 @@ export const Footer = () => {
 
           {/* Third Column - Resources */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Resources</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t("resources")}</h3>
             <ul className="space-y-3">
               <li>
                 <Link
@@ -111,16 +113,7 @@ export const Footer = () => {
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2"
                 >
                   <Github className="h-4 w-4" />
-                  Open Source
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/sponsors"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2"
-                >
-                  <Crown className="h-4 w-4" />
-                  Sponsors
+                  {t("openSource")}
                 </Link>
               </li>
               <li>
@@ -129,16 +122,7 @@ export const Footer = () => {
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2"
                 >
                   <DollarSign className="h-4 w-4" />
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/blog"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2"
-                >
-                  <FileText className="h-4 w-4" />
-                  Blog
+                  {t("pricing")}
                 </Link>
               </li>
               <li>
@@ -147,18 +131,18 @@ export const Footer = () => {
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2"
                 >
                   <FileText className="h-4 w-4" />
-                  SEO Backlink Database
+                  {t("backlinkDatabase")}
                 </Link>
               </li>
               <li>
                 <a
-                  href="https://github.com/hicyoucom/hicyou"
+                  href="https://github.com/makoolabs/hicyou"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-2"
                 >
                   <Github className="h-4 w-4" />
-                  GitHub Repo
+                  {t("githubRepo")}
                 </a>
               </li>
             </ul>
@@ -166,14 +150,14 @@ export const Footer = () => {
 
           {/* Fourth Column - Legal */}
           <div>
-            <h3 className="font-semibold text-foreground mb-4">Legal</h3>
+            <h3 className="font-semibold text-foreground mb-4">{t("legal")}</h3>
             <ul className="space-y-3">
               <li>
                 <Link
                   href="/legal/terms"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Terms of Service
+                  {t("termsOfService")}
                 </Link>
               </li>
               <li>
@@ -181,7 +165,7 @@ export const Footer = () => {
                   href="/legal/privacy"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Privacy Policy
+                  {t("privacyPolicy")}
                 </Link>
               </li>
               <li>
@@ -189,7 +173,15 @@ export const Footer = () => {
                   href="/legal/badges"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Attribution Badges
+                  {t("attributionBadges")}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/friendly-links"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {t("friendlyLinks")}
                 </Link>
               </li>
             </ul>

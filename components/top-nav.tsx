@@ -3,9 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 import Logo from "@/public/logo.svg";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
@@ -23,6 +25,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const TopNav = () => {
   const pathname = usePathname();
+  const t = useTranslations("common");
+  const locale = useLocale();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
@@ -44,7 +48,7 @@ export const TopNav = () => {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/login";
+    window.location.href = `/${locale}/login`;
   };
 
   const getAvatarUrl = (user: User) => {
@@ -62,18 +66,19 @@ export const TopNav = () => {
   };
 
   const navItems = [
-    { href: "/c", label: "Category" },
-    { href: "/about", label: "About" },
-    { href: "/pricing", label: "Pricing" },
-    { href: "/submit", label: "Submit" },
-    { href: "/badge", label: "Badge", isBadge: true },
+    { href: "/c", label: t("categories") },
+    { href: "/collections", label: t("collections") },
+    { href: "/about", label: t("about") },
+    { href: "/pricing", label: t("pricing") },
+    { href: "/submit", label: t("submitProject") },
+    { href: "/badge", label: t("badge"), isBadge: true },
   ];
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
       <div className="flex items-center justify-between gap-6 px-8 py-4 max-w-[1800px] mx-auto">
         {/* Logo */}
-        <Link href="/" className="flex-shrink-0">
+        <Link href={`/${locale}`} className="flex-shrink-0">
           <Image
             src={Logo}
             alt="Logo"
@@ -92,7 +97,7 @@ export const TopNav = () => {
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={`/${locale}${item.href}`}
                   className={cn(
                     "text-sm font-medium transition-colors hover:text-primary",
                     isActive ? "text-primary" : "text-muted-foreground"
@@ -108,7 +113,7 @@ export const TopNav = () => {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={`/${locale}${item.href}`}
                 className={cn(
                   "text-sm font-medium transition-colors hover:text-primary",
                   isActive ? "text-primary" : "text-muted-foreground"
@@ -118,6 +123,9 @@ export const TopNav = () => {
               </Link>
             );
           })}
+
+          {/* Language Switcher */}
+          <LocaleSwitcher />
 
           {/* Theme Toggle */}
           <ThemeToggle />
@@ -153,24 +161,24 @@ export const TopNav = () => {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/account">User Center</Link>
+                    <Link href={`/${locale}/account`}>{t("userCenter")}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/account">My Submissions</Link>
+                    <Link href={`/${locale}/account`}>{t("mySubmissions")}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
-                    Log out
+                    {t("signOut")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="sm" asChild>
-                  <Link href="/login">Sign In</Link>
+                  <Link href={`/${locale}/login`}>{t("signIn")}</Link>
                 </Button>
                 <Button size="sm" asChild>
-                  <Link href="/login">Sign Up</Link>
+                  <Link href={`/${locale}/login`}>{t("signUp")}</Link>
                 </Button>
               </div>
             )

@@ -4,86 +4,62 @@ import { directory } from "@/directory.config";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = directory.baseUrl;
+  const locales = ["en", "zh", "ja", "ko"];
 
-  // Fetch all bookmarks and categories
   const [bookmarks, categories] = await Promise.all([
     getAllBookmarks(),
     getAllCategories(),
   ]);
 
-  // Static pages
-  const staticPages: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: "daily",
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/c`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/pricing`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/submit`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/legal`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/legal/terms`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/legal/privacy`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/legal/badges`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
+  const staticPaths = [
+    "",
+    "/c",
+    "/about",
+    "/pricing",
+    "/submit",
+    "/collections",
+    "/friendly-links",
+    "/backlink-database",
+    "/open-source",
+    "/legal",
+    "/legal/terms",
+    "/legal/privacy",
+    "/legal/badges",
   ];
 
-  // Category pages
-  const categoryPages: MetadataRoute.Sitemap = categories.map((category) => ({
-    url: `${baseUrl}/c/${category.slug}`,
-    lastModified: new Date(),
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
+  const entries: MetadataRoute.Sitemap = [];
 
-  // Dynamic pages from bookmarks
-  const bookmarkPages: MetadataRoute.Sitemap = bookmarks.map((bookmark) => ({
-    url: `${baseUrl}/${bookmark.slug}`,
-    lastModified: new Date(),
-    changeFrequency: "monthly",
-    priority: 0.6,
-  }));
+  // Generate locale-prefixed URLs for static pages
+  for (const locale of locales) {
+    for (const path of staticPaths) {
+      entries.push({
+        url: `${baseUrl}/${locale}${path}`,
+        lastModified: new Date(),
+        changeFrequency: path === "" ? "daily" : "weekly",
+        priority: path === "" ? 1 : path === "/c" ? 0.9 : 0.7,
+      });
+    }
 
-  return [...staticPages, ...categoryPages, ...bookmarkPages];
+    // Category pages
+    for (const cat of categories) {
+      entries.push({
+        url: `${baseUrl}/${locale}/c/${cat.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      });
+    }
+
+    // Bookmark pages
+    for (const bm of bookmarks) {
+      entries.push({
+        url: `${baseUrl}/${locale}/${bm.slug}`,
+        lastModified: new Date(),
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      });
+    }
+  }
+
+  return entries;
 }

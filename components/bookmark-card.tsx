@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Star, Archive, Bookmark } from "lucide-react";
@@ -31,6 +32,7 @@ interface BookmarkCardProps {
 
 export const BookmarkCard = ({ bookmark }: BookmarkCardProps) => {
   const detailsUrl = `/${bookmark.slug}`;
+  const [imgError, setImgError] = useState(false);
 
   return (
     <Link
@@ -45,12 +47,14 @@ export const BookmarkCard = ({ bookmark }: BookmarkCardProps) => {
     >
       {/* Logo/Favicon */}
       <div className="flex-shrink-0">
-        {bookmark.favicon ? (
+        {bookmark.favicon && !imgError ? (
           <div className="relative h-12 w-12 overflow-hidden rounded-lg border bg-white flex items-center justify-center">
             <img
               src={bookmark.favicon}
               alt={`${bookmark.title} logo`}
               className="h-8 w-8 object-contain"
+              onError={() => setImgError(true)}
+              loading="lazy"
             />
           </div>
         ) : (

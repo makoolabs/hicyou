@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -73,6 +74,7 @@ interface Bookmark {
   ogImage: string | null;
   categoryId: number | null;
   isFavorite: boolean;
+  isRecommended: boolean;
   isArchived: boolean;
   isDofollow: boolean;
   createdAt: Date;
@@ -104,6 +106,8 @@ export function BookmarkManager({
   categories,
 }: BookmarkManagerProps) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("admin");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -220,6 +224,7 @@ export function BookmarkManager({
     ogImage: "",
     categoryId: "none",
     isFavorite: false,
+    isRecommended: false,
     isArchived: false,
     isDofollow: false,
     keyFeatures: "",
@@ -248,6 +253,7 @@ export function BookmarkManager({
         search_results: form.get("search_results") as string,
         categoryId: form.get("categoryId") as string,
         isFavorite: form.get("isFavorite") as string,
+        isRecommended: form.get("isRecommended") as string,
         isArchived: form.get("isArchived") as string,
         isDofollow: form.get("isDofollow") as string,
         keyFeatures: form.get("keyFeatures") as string,
@@ -300,6 +306,7 @@ export function BookmarkManager({
           ogImage: selectedBookmark.ogImage || "",
           categoryId: selectedBookmark.categoryId?.toString() || "none",
           isFavorite: selectedBookmark.isFavorite,
+          isRecommended: selectedBookmark.isRecommended || false,
           isArchived: selectedBookmark.isArchived,
           isDofollow: selectedBookmark.isDofollow || false,
           keyFeatures: selectedBookmark.keyFeatures ? JSON.stringify(selectedBookmark.keyFeatures, null, 2) : "",
@@ -327,6 +334,7 @@ export function BookmarkManager({
       ogImage: "",
       categoryId: "none",
       isFavorite: false,
+      isRecommended: false,
       isArchived: false,
       isDofollow: false,
       keyFeatures: "",
@@ -488,7 +496,7 @@ export function BookmarkManager({
       const data = new FormData();
       data.append("url", url);
 
-      const result = await generateContent(url);
+      const result = await generateContent(url, locale);
 
       if ("error" in result) {
         toast.error(result.error as string);
@@ -597,7 +605,7 @@ export function BookmarkManager({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold">Manage Bookmarks</h2>
+          <h2 className="text-lg font-semibold">{t("manageBookmarks")}</h2>
           {selectedBookmarks.size > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
@@ -631,7 +639,7 @@ export function BookmarkManager({
             variant="outline"
           >
             <Upload className="mr-2 h-4 w-4" />
-            Bulk Upload
+            {t("bulkUpload")}
           </Button>
           <Button
             onClick={() => setIsJsonImportSheetOpen(true)}
@@ -639,11 +647,11 @@ export function BookmarkManager({
             variant="outline"
           >
             <FileJson className="mr-2 h-4 w-4" />
-            Import JSON
+            {t("importJson")}
           </Button>
           <Button onClick={handleNew} size="sm">
             <Plus className="mr-2 h-4 w-4" />
-            Add Bookmark
+            {t("addBookmark")}
           </Button>
         </div>
       </div>
@@ -652,7 +660,7 @@ export function BookmarkManager({
       <div className="flex items-center gap-4">
         <div className="flex-1">
           <Input
-            placeholder="Search by title, URL, description..."
+            placeholder={t("searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="max-w-md"
@@ -664,10 +672,10 @@ export function BookmarkManager({
             onValueChange={setSelectedCategoryFilter}
           >
             <SelectTrigger>
-              <SelectValue placeholder="All Categories" />
+              <SelectValue placeholder={t("allCategories")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="all">{t("allCategories")}</SelectItem>
               <SelectItem value="none">Uncategorized</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id.toString()}>
@@ -686,7 +694,7 @@ export function BookmarkManager({
               setSelectedCategoryFilter("all");
             }}
           >
-            Clear Filters
+            {t("clearFilters")}
           </Button>
         )}
       </div>
@@ -716,20 +724,20 @@ export function BookmarkManager({
                 <Checkbox
                   checked={paginatedBookmarks.length > 0 && selectedBookmarks.size === paginatedBookmarks.length}
                   onCheckedChange={handleSelectAll}
-                  aria-label="Select all"
+                  aria-label={t("selectAll")}
                 />
               </TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("title")}</TableHead>
+              <TableHead>{t("category")}</TableHead>
+              <TableHead>{t("status")}</TableHead>
+              <TableHead className="text-right">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedBookmarks.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  No bookmarks found
+                  {t("noBookmarks")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -760,11 +768,14 @@ export function BookmarkManager({
                       {bookmark.isFavorite && (
                         <Badge variant="secondary">Favorite</Badge>
                       )}
+                      {bookmark.isRecommended && (
+                        <Badge className="bg-blue-500 text-white hover:bg-blue-600">Recommended</Badge>
+                      )}
                       {bookmark.isArchived && (
                         <Badge variant="secondary">Archived</Badge>
                       )}
                       {bookmark.isDofollow && (
-                        <Badge className="bg-green-500 text-white hover:bg-green-600">Dofollow</Badge>
+                        <Badge className="bg-green-500 text-white hover:bg-green-600">{t("dofollow")}</Badge>
                       )}
                     </div>
                   </TableCell>
@@ -818,12 +829,12 @@ export function BookmarkManager({
             <SheetHeader className="flex flex-row items-start justify-between space-y-0 pb-6">
               <div className="space-y-1">
                 <SheetTitle>
-                  {isNewBookmark ? "Add Bookmark" : "Edit Bookmark"}
+                  {isNewBookmark ? t("addBookmark") : t("edit")}
                 </SheetTitle>
                 <SheetDescription>
                   {isNewBookmark
                     ? "Add a new bookmark to your collection"
-                    : "Update the details of your bookmark"}
+                    : t("updateBookmarkDetails")}
                 </SheetDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -858,6 +869,7 @@ export function BookmarkManager({
               <input type="hidden" name="categoryId" value={formData.categoryId} />
               <input type="hidden" name="pricingType" value={formData.pricingType} />
               <input type="hidden" name="isFavorite" value={formData.isFavorite ? "true" : "false"} />
+              <input type="hidden" name="isRecommended" value={formData.isRecommended ? "true" : "false"} />
               <input type="hidden" name="isArchived" value={formData.isArchived ? "true" : "false"} />
               <input type="hidden" name="isDofollow" value={formData.isDofollow ? "true" : "false"} />
 
@@ -1028,7 +1040,7 @@ export function BookmarkManager({
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">No Category</SelectItem>
+                        <SelectItem value="none">{t("noCategory")}</SelectItem>
                         {categories.map((category) => (
                           <SelectItem key={category.id} value={category.id.toString()}>
                             {category.name}
@@ -1136,6 +1148,19 @@ export function BookmarkManager({
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox
+                        id="isRecommended"
+                        checked={formData.isRecommended}
+                        onCheckedChange={(checked) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            isRecommended: checked as boolean,
+                          }))
+                        }
+                      />
+                      <Label htmlFor="isRecommended">Recommend</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
                         id="isArchived"
                         checked={formData.isArchived}
                         onCheckedChange={(checked) =>
@@ -1158,7 +1183,7 @@ export function BookmarkManager({
                           }))
                         }
                       />
-                      <Label htmlFor="isDofollow" className="font-semibold text-green-600">Dofollow</Label>
+                      <Label htmlFor="isDofollow" className="font-semibold text-green-600">{t("dofollow")}</Label>
                     </div>
                   </div>
                 </div>
@@ -1171,7 +1196,7 @@ export function BookmarkManager({
       <Sheet open={isBulkSheetOpen} onOpenChange={setIsBulkSheetOpen}>
         <SheetContent className="w-full sm:max-w-xl">
           <SheetHeader>
-            <SheetTitle>Bulk Upload Bookmarks</SheetTitle>
+            <SheetTitle>{t("bulkUpload")}</SheetTitle>
             <SheetDescription>
               Upload a CSV file with a list of URLs to import. Each URL will be
               processed with a short delay to avoid rate limits.
@@ -1181,7 +1206,7 @@ export function BookmarkManager({
           <form onSubmit={handleBulkUpload} className="mt-6 space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="file">Upload CSV File</Label>
+                <Label htmlFor="file">{t("uploadCsv")}</Label>
                 <Input
                   id="file"
                   name="file"

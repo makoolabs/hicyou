@@ -61,7 +61,7 @@ export async function generateAIContent(
     const response = await client.chat.completions.create({
       model,
       messages,
-      temperature: 0.7,
+      temperature: 0.8,
       max_tokens: 1000,
     });
 
@@ -82,6 +82,7 @@ export async function generateWebsiteContent(params: {
   title: string;
   metaDescription?: string;
   searchResults?: string;
+  locale?: string;
 }): Promise<{
   tagline: string;
   description: string;
@@ -89,33 +90,43 @@ export async function generateWebsiteContent(params: {
   useCases: string[];
   faqs: { question: string; answer: string }[];
 }> {
-  const { url, title, metaDescription, searchResults } = params;
+  const { url, title, metaDescription, searchResults, locale = "en" } = params;
 
-  const systemPrompt = `You are a helpful assistant that creates concise, engaging content for a website directory.
-IMPORTANT: All output must be in English.`;
+  const langMap: Record<string, string> = {
+    en: "English",
+    zh: "Chinese (Simplified)",
+    ja: "Japanese",
+    ko: "Korean",
+  };
+  const langName = langMap[locale] || "English";
 
-  const userPrompt = `Based on the following information about a website, generate content for a directory listing.
+  const systemPrompt = `You are a professional SaaS product analyst. Your job is to write accurate, engaging directory listings for tools and websites.
+
+CRITICAL RULES:
+1. All output MUST be in ${langName}.
+2. You may receive "Tavily Search Context" — these are real-time web search results about this product. Treat them as your primary source of truth.
+3. Synthesize information from the search context. Do NOT invent features or details not supported by the context.
+4. If Jina Reader content (raw page markdown) is provided, use it for technical details and factual accuracy.
+5. If no search context is available, rely on the Jina Reader content and meta description.
+6. Write like a human analyst who has researched this product — engaging, confident, but accurate.
+7. High temperature is used deliberately — be creative in wording while staying factually grounded in the provided context.`;
+
+  const userPrompt = `Analyze this product and generate a directory listing.
 
 Website: ${title}
 URL: ${url}
 ${metaDescription ? `Meta Description: ${metaDescription}` : ""}
-${searchResults ? `Additional Context: ${searchResults}` : ""}
+${searchResults ? `Research Data: ${searchResults}` : ""}
+${!searchResults ? "(Note: No research data available. Use the URL and meta description only. Keep it brief.)" : ""}
 
-Please generate the following fields in JSON format:
+Generate the following fields in JSON:
 1. "tagline": A catchy one-sentence tagline (max 120 chars).
-2. "description": A 65-80 word introduction paragraph answering "What is ${title}?".
-3. "keyFeatures": An array of 6 key features (short strings).
-4. "useCases": An array of 3-6 use cases (short strings).
-5. "faqs": An array of 4-6 FAQs, each with "question" and "answer" fields.
+2. "description": A 65-80 word overview. If research data has "Tavily Search Context", synthesize the most relevant findings. If only raw page content is available, summarize the key value proposition.
+3. "keyFeatures": An array of 6 key features (short strings, each 3-8 words).
+4. "useCases": An array of 3-6 specific use cases (who uses this, and for what).
+5. "faqs": An array of 4-6 FAQs with "question" and "answer" fields.
 
-Guidelines:
-- All content MUST be in English.
-- Description should be concise and informative.
-- Key features should be bullet points.
-- Use cases should be specific scenarios.
-- FAQs should address common user questions based on the features.
-
-Format your response as valid JSON:
+Format your response as valid JSON (no markdown fences):
 {
   "tagline": "...",
   "description": "...",
@@ -135,8 +146,8 @@ Format your response as valid JSON:
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
-      temperature: 0.7,
-      max_tokens: 4000, // Adjusted max tokens as 8000 might be too high for some models
+      temperature: 0.8,
+      max_tokens: 4000, // Higher temperature for creative output, grounded by Tavily context
     });
 
     const content = response.choices[0]?.message?.content || "";

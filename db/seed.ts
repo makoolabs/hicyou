@@ -10,9 +10,12 @@ async function seed() {
   const dataPath = path.join(process.cwd(), "db/seed-data.json");
   const seedData = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
 
-  // Truncate tables to avoid conflicts
+  // Truncate tables to avoid conflicts (MySQL compatible)
   console.log("Truncating tables...");
-  await db.execute(sql`TRUNCATE TABLE bookmarks, categories RESTART IDENTITY CASCADE`);
+  await db.execute(sql`DELETE FROM bookmarks`);
+  await db.execute(sql`DELETE FROM categories`);
+  await db.execute(sql`ALTER TABLE bookmarks AUTO_INCREMENT = 1`);
+  await db.execute(sql`ALTER TABLE categories AUTO_INCREMENT = 1`);
 
   // Create categories
   console.log(`Importing ${seedData.categories.length} categories...`);
@@ -30,8 +33,8 @@ async function seed() {
       });
   }
 
-  // Update category sequence
-  await db.execute(sql`SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories))`);
+  // MySQL auto_increment handles sequence automatically
+  console.log(`✅ Imported ${seedData.categories.length} categories`);
 
   // Create bookmarks
   console.log(`Importing ${seedData.bookmarks.length} bookmarks...`);
@@ -61,8 +64,8 @@ async function seed() {
       });
   }
 
-  // Update bookmarks sequence
-  await db.execute(sql`SELECT setval('bookmarks_id_seq', (SELECT MAX(id) FROM bookmarks))`);
+  // MySQL auto_increment handles sequence automatically
+  console.log(`✅ Imported ${seedData.bookmarks.length} bookmarks`);
 
   console.log("✅ Seeding complete!");
 }

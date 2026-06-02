@@ -8,7 +8,7 @@ const BADGE_PATHS = [
   "/badge/featured-dark.svg",
 ];
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://hicyou.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://mossgame.com";
 
 /**
  * Verify if a website contains our badge
@@ -27,7 +27,7 @@ export async function verifyBadge(targetUrl: string): Promise<boolean> {
     const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "HiCyou Badge Verifier/1.0",
+        "User-Agent": "MossGame Badge Verifier/1.0",
       },
     });
 

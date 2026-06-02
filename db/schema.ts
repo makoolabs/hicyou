@@ -1,9 +1,9 @@
-import { pgTable, serial, text, timestamp, boolean, integer, json } from "drizzle-orm/pg-core";
+import { mysqlTable, int, varchar, text, timestamp, boolean, json } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 // Profiles table (extends Supabase Auth)
-export const profiles = pgTable("profiles", {
-  id: text("id").primaryKey(), // References auth.users.id
+export const profiles = mysqlTable("profiles", {
+  id: varchar("id", { length: 255 }).primaryKey(), // References auth.users.id
   email: text("email"),
   name: text("name"), // User's display name
   fullName: text("full_name"),
@@ -12,29 +12,31 @@ export const profiles = pgTable("profiles", {
 });
 
 // Categories table
-export const categories = pgTable("categories", {
-  id: serial("id").primaryKey(),
+export const categories = mysqlTable("categories", {
+  id: int("id").autoincrement().primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  slug: text("slug").notNull().unique(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
   color: text("color"), // For UI customization
   icon: text("icon"), // For UI customization
-  sortOrder: integer("sort_order").notNull().default(0), // For ordering categories
+  parentId: int("parent_id").references((): any => categories.id), // Self-referencing for subcategories
+  defaultExpanded: boolean("default_expanded").notNull().default(false), // Auto-expand children on frontend
+  sortOrder: int("sort_order").notNull().default(0), // For ordering categories
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at"),
 });
 
 // Bookmarks table
-export const bookmarks = pgTable("bookmarks", {
+export const bookmarks = mysqlTable("bookmarks", {
   // Core fields
-  id: serial("id").primaryKey(),
-  url: text("url").notNull().unique(),
+  id: int("id").autoincrement().primaryKey(),
+  url: varchar("url", { length: 2048 }).notNull(),
   title: text("title").notNull(),
-  slug: text("slug").notNull().unique(),
+  slug: varchar("slug", { length: 255 }).notNull(),
   description: text("description"), // Tagline
 
   // Organization
-  categoryId: integer("category_id").references(() => categories.id),
+  categoryId: int("category_id").references(() => categories.id),
   tags: text("tags"), // Comma-separated tags
 
   // Metadata
@@ -59,8 +61,11 @@ export const bookmarks = pgTable("bookmarks", {
   notes: text("notes"), // Personal notes
   isArchived: boolean("is_archived").notNull().default(false),
   isFavorite: boolean("is_favorite").notNull().default(false),
+  isRecommended: boolean("is_recommended").notNull().default(false),
   isDofollow: boolean("is_dofollow").notNull().default(false),
   search_results: text("search_results"),
+  source: varchar("source", { length: 50 }), // "github", "hackernews", "manual", "other"
+  sourceId: varchar("source_id", { length: 255 }), // External ID from discovery source
 
   // AI Generated Content
   keyFeatures: json("key_features"), // Array of strings or objects
@@ -69,16 +74,16 @@ export const bookmarks = pgTable("bookmarks", {
 });
 
 // Submissions table
-export const submissions = pgTable("submissions", {
-  id: serial("id").primaryKey(),
-  url: text("url").notNull().unique(),
+export const submissions = mysqlTable("submissions", {
+  id: int("id").autoincrement().primaryKey(),
+  url: varchar("url", { length: 2048 }).notNull(),
   title: text("title").notNull(),
   tagline: text("tagline"),
   description: text("description"),
-  categoryId: integer("category_id").references(() => categories.id),
+  categoryId: int("category_id").references(() => categories.id),
 
   // User association
-  userId: text("user_id").references(() => profiles.id), // Link to Supabase Auth user (via profiles)
+  userId: varchar("user_id", { length: 255 }).references(() => profiles.id),
 
   // Additional content
   whyStartups: text("why_startups"),
@@ -122,6 +127,32 @@ export const submissions = pgTable("submissions", {
   faqs: json("faqs"),
 });
 
+// Friendly Links table
+export const friendlyLinks = mysqlTable("friendly_links", {
+  id: int("id").autoincrement().primaryKey(),
+  title: text("title").notNull(),
+  url: varchar("url", { length: 2048 }).notNull(),
+  description: text("description"),
+  sortOrder: int("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Backlink Resources table (SEO backlink database)
+export const backlinkResources = mysqlTable("backlink_resources", {
+  id: int("id").autoincrement().primaryKey(),
+  name: text("name").notNull(),
+  url: varchar("url", { length: 2048 }).notNull(),
+  drScore: int("dr_score").notNull().default(0),
+  linkType: varchar("link_type", { length: 20 }).notNull().default("dofollow"), // dofollow / nofollow
+  category: varchar("category", { length: 100 }).notNull().default("General"), // General, GameDev, AI, Directory, etc.
+  cost: varchar("cost", { length: 20 }).notNull().default("Free"), // Free / Paid
+  description: text("description"),
+  sortOrder: int("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const bookmarksRelations = relations(bookmarks, ({ one }) => ({
   category: one(categories, {
@@ -151,5 +182,39 @@ export type NewBookmark = typeof bookmarks.$inferInsert;
 export type Submission = typeof submissions.$inferSelect;
 export type NewSubmission = typeof submissions.$inferInsert;
 
+export type FriendlyLink = typeof friendlyLinks.$inferSelect;
+export type NewFriendlyLink = typeof friendlyLinks.$inferInsert;
+
+export type BacklinkResource = typeof backlinkResources.$inferSelect;
+export type NewBacklinkResource = typeof backlinkResources.$inferInsert;
+
 export type Profile = typeof profiles.$inferSelect;
 export type NewProfile = typeof profiles.$inferInsert;
+
+// Collections table (curated topic groups)
+export const collections = mysqlTable("collections", {
+  id: int("id").autoincrement().primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  coverImage: text("cover_image"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Collection items (links within a collection)
+export const collectionItems = mysqlTable("collection_items", {
+  id: int("id").autoincrement().primaryKey(),
+  collectionId: int("collection_id").references(() => collections.id, { onDelete: "cascade" }).notNull(),
+  title: text("title").notNull(),
+  url: varchar("url", { length: 2048 }).notNull(),
+  description: text("description"),
+  sortOrder: int("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Type definitions for collections
+export type Collection = typeof collections.$inferSelect;
+export type NewCollection = typeof collections.$inferInsert;
+export type CollectionItem = typeof collectionItems.$inferSelect;
+export type NewCollectionItem = typeof collectionItems.$inferInsert;

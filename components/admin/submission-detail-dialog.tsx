@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
     Dialog,
     DialogContent,
@@ -55,6 +56,7 @@ export function SubmissionDetailDialog({
     onOpenChange,
     onUpdate,
 }: SubmissionDetailDialogProps) {
+    const t = useTranslations("admin");
     const [isDofollow, setIsDofollow] = useState(submission?.isDofollow || false);
     const [loading, setLoading] = useState(false);
 
@@ -73,11 +75,11 @@ export function SubmissionDetailDialog({
             });
 
             if (response.ok) {
-                toast.success("Submission approved");
+                toast.success(t("submissionApproved"));
                 onUpdate();
                 onOpenChange(false);
             } else {
-                toast.error("Failed to approve submission");
+                toast.error(t("submissionApproveError"));
             }
         } catch (error) {
             toast.error("Failed to approve submission");
@@ -98,11 +100,11 @@ export function SubmissionDetailDialog({
             });
 
             if (response.ok) {
-                toast.success("Submission rejected");
+                toast.success(t("submissionRejected"));
                 onUpdate();
                 onOpenChange(false);
             } else {
-                toast.error("Failed to reject submission");
+                toast.error(t("submissionRejectError"));
             }
         } catch (error) {
             toast.error("Failed to reject submission");
@@ -157,7 +159,7 @@ export function SubmissionDetailDialog({
                     {/* Basic Info */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label className="text-muted-foreground">Status</Label>
+                            <Label className="text-muted-foreground">{t("status")}</Label>
                             <div className="mt-1">
                                 <Badge variant={submission.status === "published" ? "default" : "secondary"}>
                                     {submission.status}
@@ -165,7 +167,7 @@ export function SubmissionDetailDialog({
                             </div>
                         </div>
                         <div>
-                            <Label className="text-muted-foreground">Pricing</Label>
+                            <Label className="text-muted-foreground">{t("pricingType")}</Label>
                             <div className="mt-1 font-medium">{submission.pricingType}</div>
                         </div>
                     </div>
@@ -173,7 +175,7 @@ export function SubmissionDetailDialog({
                     {/* Tagline */}
                     {submission.tagline && (
                         <div>
-                            <Label className="text-muted-foreground">Tagline</Label>
+                            <Label className="text-muted-foreground">{t("tagline")}</Label>
                             <p className="mt-1">{submission.tagline}</p>
                         </div>
                     )}
@@ -181,7 +183,7 @@ export function SubmissionDetailDialog({
                     {/* Description */}
                     {submission.description && (
                         <div>
-                            <Label className="text-muted-foreground">Description</Label>
+                            <Label className="text-muted-foreground">{t("description")}</Label>
                             <p className="mt-1 text-sm">{submission.description}</p>
                         </div>
                     )}
@@ -189,7 +191,7 @@ export function SubmissionDetailDialog({
                     {/* Why Startups */}
                     {submission.whyStartups && (
                         <div>
-                            <Label className="text-muted-foreground">Why Startups Need This</Label>
+                            <Label className="text-muted-foreground">{t("whyStartups")}</Label>
                             <p className="mt-1 text-sm">{submission.whyStartups}</p>
                         </div>
                     )}
@@ -197,7 +199,7 @@ export function SubmissionDetailDialog({
                     {/* Alternatives */}
                     {submission.alternatives && (
                         <div>
-                            <Label className="text-muted-foreground">Alternatives</Label>
+                            <Label className="text-muted-foreground">{t("alternatives")}</Label>
                             <p className="mt-1 text-sm">{submission.alternatives}</p>
                         </div>
                     )}
@@ -205,7 +207,7 @@ export function SubmissionDetailDialog({
                     {/* Key Features */}
                     {submission.keyFeatures && Array.isArray(submission.keyFeatures) && submission.keyFeatures.length > 0 && (
                         <div>
-                            <Label className="text-muted-foreground">Key Features</Label>
+                            <Label className="text-muted-foreground">{t("keyFeatures")}</Label>
                             <ul className="mt-1 list-disc list-inside text-sm">
                                 {(submission.keyFeatures as string[]).map((feature, i) => (
                                     <li key={i}>{feature}</li>
@@ -217,7 +219,7 @@ export function SubmissionDetailDialog({
                     {/* Use Cases */}
                     {submission.useCases && Array.isArray(submission.useCases) && submission.useCases.length > 0 && (
                         <div>
-                            <Label className="text-muted-foreground">Use Cases</Label>
+                            <Label className="text-muted-foreground">{t("useCases")}</Label>
                             <ul className="mt-1 list-disc list-inside text-sm">
                                 {(submission.useCases as string[]).map((useCase, i) => (
                                     <li key={i}>{useCase}</li>
@@ -229,7 +231,7 @@ export function SubmissionDetailDialog({
                     {/* FAQs */}
                     {submission.faqs && Array.isArray(submission.faqs) && submission.faqs.length > 0 && (
                         <div>
-                            <Label className="text-muted-foreground">FAQs</Label>
+                            <Label className="text-muted-foreground">{t("faqs")}</Label>
                             <div className="mt-1 space-y-2">
                                 {(submission.faqs as { question: string; answer: string }[]).map((faq, i) => (
                                     <div key={i} className="text-sm">
@@ -243,20 +245,20 @@ export function SubmissionDetailDialog({
 
                     {/* Badge Status */}
                     <div className="border-t pt-4">
-                        <Label className="text-muted-foreground">Badge Verification</Label>
+                        <Label className="text-muted-foreground">{t("badgeVerification")}</Label>
                         <div className="mt-2 flex items-center gap-2">
                             {submission.badgeVerified ? (
                                 <Badge variant="default" className="bg-green-600">
                                     <CheckCircle className="mr-1 h-3 w-3" />
-                                    Badge Verified
+                                    {t("badgeVerified")}
                                 </Badge>
                             ) : submission.hasBadge ? (
                                 <Badge variant="secondary">
-                                    Badge Added (Not Verified)
+                                    {t("badgeAdded")}
                                 </Badge>
                             ) : (
                                 <Badge variant="outline">
-                                    No Badge
+                                    {t("noBadge")}
                                 </Badge>
                             )}
                         </div>
@@ -264,9 +266,9 @@ export function SubmissionDetailDialog({
 
                     {/* Submitter Info */}
                     <div className="border-t pt-4">
-                        <Label className="text-muted-foreground">Submitter</Label>
+                        <Label className="text-muted-foreground">{t("submitter")}</Label>
                         <div className="mt-2 space-y-1">
-                            <p className="font-medium">{submission.submitterName || "Anonymous"}</p>
+                            <p className="font-medium">{submission.submitterName || t("anonymous")}</p>
                             {submission.submitterEmail && (
                                 <p className="text-sm text-muted-foreground">{submission.submitterEmail}</p>
                             )}
@@ -277,9 +279,9 @@ export function SubmissionDetailDialog({
                     <div className="border-t pt-4">
                         <div className="flex items-center justify-between">
                             <div>
-                                <Label htmlFor="dofollow">Dofollow Link</Label>
+                                <Label htmlFor="dofollow">{t("dofollowLink")}</Label>
                                 <p className="text-sm text-muted-foreground">
-                                    Enable dofollow attribute for this submission
+                                    {t("dofollowDesc")}
                                 </p>
                             </div>
                             <Switch
@@ -293,7 +295,7 @@ export function SubmissionDetailDialog({
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
-                        Cancel
+                        {t("cancel")}
                     </Button>
                     {submission.status === "pending" && (
                         <>
@@ -303,11 +305,11 @@ export function SubmissionDetailDialog({
                                 disabled={loading}
                             >
                                 <XCircle className="mr-2 h-4 w-4" />
-                                Reject
+                                {t("reject")}
                             </Button>
                             <Button onClick={handleApprove} disabled={loading}>
                                 <CheckCircle className="mr-2 h-4 w-4" />
-                                Approve
+                                {t("approve")}
                             </Button>
                         </>
                     )}

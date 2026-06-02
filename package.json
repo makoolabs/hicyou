@@ -2,6 +2,13 @@
   "name": "directory",
   "version": "0.1.0",
   "private": true,
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -47,10 +54,11 @@
     "exa-js": "^1.3.2",
     "framer-motion": "^11.11.9",
     "lucide-react": "^0.445.0",
+    "mysql2": "^3.11.0",
     "next": "14.2.15",
+    "next-intl": "^4.13.0",
     "next-themes": "^0.3.0",
     "openai": "^4.104.0",
-    "postgres": "^3.4.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",

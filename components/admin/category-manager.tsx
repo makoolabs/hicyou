@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useFormState } from "react-dom";
 import {
   createCategory,
@@ -14,6 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +44,7 @@ import { Pencil, Trash2, Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { IconPicker } from "@/components/ui/icon-picker";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { Switch } from "@/components/ui/switch";
 import { DynamicIcon } from "@/lib/icon-utils";
 
 interface CategoryManagerProps {
@@ -44,6 +53,7 @@ interface CategoryManagerProps {
 
 export function CategoryManager({ categories: initialCategories }: CategoryManagerProps) {
   const router = useRouter();
+  const t = useTranslations("admin");
   const [categories, setCategories] = useState<Category[]>(
     [...initialCategories].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
   );
@@ -56,6 +66,10 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
   const [editIcon, setEditIcon] = useState("");
   const [createColor, setCreateColor] = useState("#3498db");
   const [editColor, setEditColor] = useState("#3498db");
+  const [createParentId, setCreateParentId] = useState<string>("none");
+  const [editParentId, setEditParentId] = useState<string>("none");
+  const [createDefaultExpanded, setCreateDefaultExpanded] = useState(false);
+  const [editDefaultExpanded, setEditDefaultExpanded] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   // Update local categories when initial data changes
@@ -70,6 +84,8 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
       slug: formData.get("slug") as string,
       color: formData.get("color") as string,
       icon: formData.get("icon") as string,
+      parentId: createParentId !== "none" ? parseInt(createParentId) : null,
+      defaultExpanded: createDefaultExpanded,
     };
     return createCategory(null, payload);
   };
@@ -82,6 +98,8 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
       slug: formData.get("slug") as string,
       color: formData.get("color") as string,
       icon: formData.get("icon") as string,
+      parentId: editParentId !== "none" ? parseInt(editParentId) : null,
+      defaultExpanded: editDefaultExpanded,
     };
     return updateCategory(null, payload);
   };
@@ -151,14 +169,14 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Categories</h2>
+        <h2 className="text-2xl font-bold">{t("categories")}</h2>
         <div className="flex gap-2">
           <Button
             onClick={handleSaveOrder}
             disabled={isSavingOrder}
             variant="outline"
           >
-            {isSavingOrder ? "Saving..." : "Save Order"}
+            {isSavingOrder ? t("saving") : t("saveOrder")}
           </Button>
           <Dialog>
             <DialogTrigger asChild>
@@ -166,22 +184,24 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
                 onClick={() => {
                   setCreateIcon("");
                   setCreateColor("#3498db");
+                  setCreateParentId("none");
+                  setCreateDefaultExpanded(false);
                 }}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add Category
+                {t("addCategory")}
               </Button>
             </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Category</DialogTitle>
+              <DialogTitle>{t("addCategory")}</DialogTitle>
               <DialogDescription>
-                Create a new category for organizing bookmarks.
+                {t("categoryDescription")}
               </DialogDescription>
             </DialogHeader>
             <form action={createAction} className="space-y-4">
               <div>
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">{t("name")}</Label>
                 <Input
                   id="name"
                   name="name"
@@ -201,11 +221,11 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
                 />
               </div>
               <div>
-                <Label htmlFor="slug">Slug</Label>
+                <Label htmlFor="slug">{t("slug")}</Label>
                 <Input id="slug" name="slug" required />
               </div>
               <div>
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t("description")}</Label>
                 <Textarea id="description" name="description" />
               </div>
               <ColorPicker
@@ -213,7 +233,7 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
                 onValueChange={setCreateColor}
                 name="color"
                 id="color"
-                label="Category Color"
+                label={t("categoryColor")}
               />
               <IconPicker
                 value={createIcon}
@@ -221,8 +241,34 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
                 name="icon"
                 id="icon"
               />
+              <div>
+                <Label>{t("parentCategory")}</Label>
+                <Select value={createParentId} onValueChange={setCreateParentId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("noParent")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("noParent")}</SelectItem>
+                    {categories
+                      .filter(c => !c.parentId) // only top-level can be parents
+                      .map(c => (
+                        <SelectItem key={c.id} value={c.id.toString()}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="create-default-expanded">{t("defaultExpanded")}</Label>
+                <Switch
+                  id="create-default-expanded"
+                  checked={createDefaultExpanded}
+                  onCheckedChange={setCreateDefaultExpanded}
+                />
+              </div>
               <DialogFooter>
-                <Button type="submit">Create Category</Button>
+                <Button type="submit">{t("createCategory")}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -234,12 +280,13 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">Order</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Color</TableHead>
-              <TableHead>Icon</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+              <TableHead className="w-[100px]">{t("order")}</TableHead>
+              <TableHead>{t("name")}</TableHead>
+              <TableHead>{t("description")}</TableHead>
+              <TableHead>{t("color")}</TableHead>
+              <TableHead>{t("icon")}</TableHead>
+              <TableHead>{t("parentCategory")}</TableHead>
+              <TableHead className="w-[100px]">{t("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -290,6 +337,11 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
                     <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
+                <TableCell className="text-muted-foreground text-sm">
+                  {category.parentId
+                    ? categories.find(c => c.id === category.parentId)?.name || "—"
+                    : "—"}
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Button
@@ -299,6 +351,8 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
                         setSelectedCategory(category);
                         setEditIcon(category.icon || "");
                         setEditColor(category.color || "#3498db");
+                        setEditParentId(category.parentId ? category.parentId.toString() : "none");
+                        setEditDefaultExpanded(category.defaultExpanded || false);
                         setIsEditDialogOpen(true);
                       }}
                     >
@@ -326,13 +380,13 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Category</DialogTitle>
-            <DialogDescription>Update the category details.</DialogDescription>
+            <DialogTitle>{t("editCategory")}</DialogTitle>
+            <DialogDescription>{t("updateCategoryDetails")}</DialogDescription>
           </DialogHeader>
           <form action={updateAction} className="space-y-4">
             <input type="hidden" name="id" value={selectedCategory?.id?.toString()} />
             <div>
-              <Label htmlFor="edit-name">Name</Label>
+              <Label htmlFor="edit-name">{t("name")}</Label>
               <Input
                 id="edit-name"
                 name="name"
@@ -353,7 +407,7 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
               />
             </div>
             <div>
-              <Label htmlFor="edit-slug">Slug</Label>
+              <Label htmlFor="edit-slug">{t("slug")}</Label>
               <Input
                 id="edit-slug"
                 name="slug"
@@ -362,7 +416,7 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
               />
             </div>
             <div>
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="edit-description">{t("description")}</Label>
               <Textarea
                 id="edit-description"
                 name="description"
@@ -374,7 +428,7 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
               onValueChange={setEditColor}
               name="color"
               id="edit-color"
-              label="Category Color"
+              label={t("categoryColor")}
               defaultValue={selectedCategory?.color || "#3498db"}
             />
             <IconPicker
@@ -383,8 +437,34 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
               name="icon"
               id="edit-icon"
             />
+            <div>
+              <Label>{t("parentCategory")}</Label>
+              <Select value={editParentId} onValueChange={setEditParentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("noParent")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t("noParent")}</SelectItem>
+                  {categories
+                    .filter(c => !c.parentId && c.id !== selectedCategory?.id) // exclude self
+                    .map(c => (
+                      <SelectItem key={c.id} value={c.id.toString()}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="edit-default-expanded">{t("defaultExpanded")}</Label>
+              <Switch
+                id="edit-default-expanded"
+                checked={editDefaultExpanded}
+                onCheckedChange={setEditDefaultExpanded}
+              />
+            </div>
             <DialogFooter>
-              <Button type="submit">Update Category</Button>
+              <Button type="submit">{t("updateCategory")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -394,10 +474,9 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Category</DialogTitle>
+            <DialogTitle>{t("deleteCategory")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this category? This action cannot
-              be undone.
+              {t("deleteCategoryConfirm")}
             </DialogDescription>
           </DialogHeader>
           <form action={deleteAction}>
@@ -408,10 +487,10 @@ export function CategoryManager({ categories: initialCategories }: CategoryManag
                 variant="outline"
                 onClick={() => setIsDeleteDialogOpen(false)}
               >
-                Cancel
+                {t("cancel")}
               </Button>
               <Button type="submit" variant="destructive">
-                Delete
+                {t("delete")}
               </Button>
             </DialogFooter>
           </form>

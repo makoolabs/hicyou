@@ -1,40 +1,47 @@
 {
-  "version": "7",
-  "dialect": "postgresql",
+  "version": "6",
+  "dialect": "mysql",
   "entries": [
     {
       "idx": 0,
-      "version": "7",
-      "when": 1763611331178,
-      "tag": "0000_public_loners",
+      "version": "5",
+      "when": 1780230137975,
+      "tag": "0000_curvy_fixer",
       "breakpoints": true
     },
     {
       "idx": 1,
-      "version": "7",
-      "when": 1763619857231,
-      "tag": "0001_faithful_demogoblin",
+      "version": "5",
+      "when": 1780314033622,
+      "tag": "0001_cuddly_mimic",
       "breakpoints": true
     },
     {
       "idx": 2,
-      "version": "7",
-      "when": 1763632843878,
-      "tag": "0002_good_gamma_corps",
+      "version": "5",
+      "when": 1780315920953,
+      "tag": "0002_petite_bug",
       "breakpoints": true
     },
     {
       "idx": 3,
-      "version": "7",
-      "when": 1763645742649,
-      "tag": "0004_brown_tenebrous",
+      "version": "5",
+      "when": 1780322601262,
+      "tag": "0003_sharp_redwing",
       "breakpoints": true
     },
     {
       "idx": 4,
-      "version": "7",
-      "when": 1763744027529,
-      "tag": "0005_gigantic_joshua_kane",
+      "version": "5",
+      "when": 1780324187196,
+      "tag": "0004_harsh_jigsaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1780331718252,
+      "tag": "0005_curved_loners",
       "breakpoints": true
     }
   ]

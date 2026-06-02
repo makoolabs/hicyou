@@ -1,0 +1,1 @@
+ALTER TABLE `categories` ADD `default_expanded` boolean DEFAULT false NOT NULL;

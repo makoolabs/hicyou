@@ -10,7 +10,7 @@ export function getBookmarkLink(url: string, isDofollow: boolean = false): strin
   if (isDofollow) {
     // Direct link for dofollow bookmarks - add UTM parameter
     const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}utm_source=hicyou.com`;
+    return `${url}${separator}utm_source=mossgame.com`;
   } else {
     // Redirect through /go for nofollow bookmarks
     const encodedUrl = encodeURIComponent(url);

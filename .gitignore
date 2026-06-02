@@ -38,3 +38,4 @@ next-env.d.ts
 
 backup.sql
 postgres.sql
+_art

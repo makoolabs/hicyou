@@ -3,7 +3,7 @@ import { isAIConfigured, generateWebsiteContent } from "@/lib/ai-config";
 
 export async function POST(request: Request) {
   try {
-    const { url, title, metaDescription, searchResults } = await request.json();
+    const { url, title, metaDescription, searchResults, locale } = await request.json();
 
     if (!url) {
       return NextResponse.json(
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       title: title || "",
       metaDescription,
       searchResults: parsedResults,
+      locale: locale || "en",
     });
 
     return NextResponse.json({

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="40" viewBox="0 0 200 40">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#ef4444"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="40" rx="8" fill="#fffbeb" stroke="#fde68a" stroke-width="1"/>
+  <rect x="6" y="6" width="28" height="28" rx="7" fill="url(#g)"/>
+  <image x="6" y="6" width="28" height="28" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAYAAAByDd+UAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAHKADAAQAAAABAAAAHAAAAABkvfSiAAADg0lEQVRIDe1VTWxUVRQ+59z303bm1dTMNFgoIRSFgDHGmJBoXODCYIxKYmaAEkQqwgK6ZWnGRJb+RH4iUBGrbCouTIwLNl2YagyLLvgNMgt1StqKtMxfZ97cH8+reWbmheK8JiQsuHnvnfOdc8/57j335wE8ag9LBZ546+jzazMnV8cdjxU3IOx/V9rvl4nuMH4ntLUjqZ1O0T5jmTEhHHeFBnxjYO+Z/qj/fnhZhIcTlTShKTuW/uF2UR+4H0HUtyzCalUNaKnqPZ3woSZ8c/Pwj93RxEvhZRFKwI0kaCo/uv83AZjPz8wMLkUQtS+LUCNuEgjXEMB02XCsAXpvLjfe1gaMTWgAEJDWiQ7rajD6T7clx4FQHb/x5yvR2dwLxybM5sZsrXTKJX0zSJjNZpUF5lTd94cXB3MvliZbbMKL1yt9oBX19yQKYZ4Vqnae9f6+wbPPhbalZGzCqtRPIdHtnz/J1sKkV749WCYLz1eUORTalpKxCSXC00SYDzZMc9JUUo9ogBdW7vpmVbM9qscmBIKNgsTlaKKbI+8VXDK/LKj6/qivGcciDDaF0rTGIEw2Jwn1Xtc/orV6ff3h773QFpVtnZ0waMPQF0lZhHTSgt6Vu8+8XK+ZpCLhaSESAqB7poFewzTWTuend3LMqTCuWfJStN/6dn65Ya4uJyxhCmC0r42oGrRKPPMSCawIwjKQuOOZyk89Xd7VksIBpfzfC6N7pkKWlhkuniPDBUNs2RBh57SGZx3bujC0OTE0W0za0/58562/TXe1Uk/XNKyuS70OlHyyZKytc3cX0ka4ax5zYB/HfxXmaJlhKnPitRp6R2xQZUDTMAYaBlGS4BsTQMiGXC8NdDo23OIEXbxeXEmUvF+LBvAvY0zBtjAvBF1x2VNcUB/3Pm6/lP/87dmQsGWGAtQfRvn9iS77A7/emFKoE5awbWEbPutaCxvKrlElEKLiWjDfYXXMrXKc+fHj2UowIn7+q4yXOf2dI8TXzWQhaYtMbz867G07MfHq8GduiyMGSO0aGUxmTk8+s3s0EQ1rKWngNDmg1KWPji1I70X+K0wSl0YAH2k+gMDrq7luxCqiYAigNX8YEwZ3OndBQaDllk4Hd8ye2zfxv4T/kuao53LvHh9cvjU05+M3YOGmpWSdFQpWgz1aBmaGxIgx2ztQ/jp77t0Li45HnwddgX8AG1xGiHdXnIkAAAAASUVORK5CYII="/>
+  <text x="42" y="18" font-family="Arial,Helvetica,sans-serif" font-size="9" font-weight="bold" fill="#92400e">Featured on</text>
+  <text x="42" y="31" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="bold" fill="#1e293b">MossGame</text>
+</svg>

@@ -1,0 +1,1 @@
+ALTER TABLE `bookmarks` ADD `is_recommended` boolean DEFAULT false NOT NULL;

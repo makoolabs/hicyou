@@ -1,6 +1,7 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "MossGame",
+  "short_name": "MossGame",
+  "description": "Free Open Source Game Development Tools Directory",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

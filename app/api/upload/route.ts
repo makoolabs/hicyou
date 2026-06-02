@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { r2Client, r2Config, getR2Path, getR2PublicUrl, isR2Configured } from "@/lib/r2";
+import { storageClient, storageConfig, getStoragePath, getPublicUrl, isConfigured, currentProvider, saveLocal } from "@/lib/storage";
 import {
   processImageToAvif,
   validateImage,
@@ -63,10 +63,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if R2 is configured
-    if (!isR2Configured || !r2Client) {
+    // Check if storage is configured (skip for local dev)
+    if (!isConfigured && currentProvider !== "local") {
       return NextResponse.json(
-        { error: "R2 storage is not configured. Please check your environment variables." },
+        { error: "Storage is not configured. Please check your environment variables." },
         { status: 500 }
       );
     }
@@ -148,22 +148,34 @@ export async function POST(request: NextRequest) {
     const avifBuffer = await processImageToAvif(buffer, processOptions);
 
     // Generate unique filename
+    // Generate unique filename
     const filename = generateUniqueFilename(file.name);
-    const path = getR2Path(type, filename);
+    const filepath = getStoragePath(type, filename);
 
-    // Upload to R2
+    // Handle local storage (dev fallback)
+    if (currentProvider === "local") {
+      const localUrl = await saveLocal(avifBuffer, filepath);
+      return NextResponse.json({
+        success: true,
+        url: localUrl,
+        filename,
+        type,
+        size: avifBuffer.length,
+      });
+    }
+
+    // Upload to cloud storage (R2 / Qiniu / S3-compatible)
     const uploadCommand = new PutObjectCommand({
-      Bucket: r2Config.bucketName,
-      Key: path,
+      Bucket: storageConfig.bucketName,
+      Key: filepath,
       Body: avifBuffer,
       ContentType: "image/avif",
       CacheControl: "public, max-age=31536000, immutable",
     });
 
-    await r2Client.send(uploadCommand);
+    await storageClient!.send(uploadCommand);
 
-    // Get public URL
-    const publicUrl = getR2PublicUrl(path);
+    const publicUrl = getPublicUrl(filepath);
 
     return NextResponse.json({
       success: true,
@@ -185,9 +197,10 @@ export async function POST(request: NextRequest) {
 // Optional: Add GET endpoint to check R2 configuration status
 export async function GET() {
   return NextResponse.json({
-    configured: isR2Configured,
-    bucketName: isR2Configured ? r2Config.bucketName : null,
-    publicUrl: isR2Configured ? r2Config.publicUrl : null,
+    configured: isConfigured,
+    provider: currentProvider,
+    bucketName: isConfigured ? storageConfig.bucketName : null,
+    publicUrl: isConfigured ? storageConfig.publicUrl : null,
   });
 }
 

@@ -1,11 +1,11 @@
 "use server";
 
 import { db } from "@/db/client";
-import { bookmarks, categories } from "@/db/schema";
+import { bookmarks, categories, collections, collectionItems, friendlyLinks, backlinkResources } from "@/db/schema";
 import { generateSlug } from "@/lib/utils";
-import { eq } from "drizzle-orm";
+import { getProductContext } from "@/lib/tavily";
+import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import Exa from "exa-js";
 
 export type ActionState = {
   success?: boolean;
@@ -34,6 +34,7 @@ type BookmarkData = {
   slug: string;
   categoryId: number | null;
   isFavorite: boolean;
+  isRecommended: boolean;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -66,6 +67,8 @@ export async function createCategory(
     slug: string;
     color: string;
     icon: string;
+    parentId?: number | null;
+    defaultExpanded?: boolean;
   },
 ): Promise<ActionState> {
   try {
@@ -74,6 +77,8 @@ export async function createCategory(
     const slug = formData.slug;
     const color = formData.color;
     const icon = formData.icon;
+    const parentId = formData.parentId || null;
+    const defaultExpanded = formData.defaultExpanded || false;
 
     // Don't manually set id - let database auto-increment
     await db.insert(categories).values({
@@ -82,6 +87,8 @@ export async function createCategory(
       slug,
       color,
       icon,
+      parentId,
+      defaultExpanded,
     });
 
     revalidatePath("/hi-studio");
@@ -102,6 +109,8 @@ export async function updateCategory(
     slug: string;
     color: string;
     icon: string;
+    parentId?: number | null;
+    defaultExpanded?: boolean;
   },
 ): Promise<ActionState> {
   try {
@@ -125,6 +134,8 @@ export async function updateCategory(
     const slug = formData.slug;
     const color = formData.color;
     const icon = formData.icon;
+    const parentId = formData.parentId ?? null;
+    const defaultExpanded = formData.defaultExpanded ?? false;
 
     await db
       .update(categories)
@@ -134,6 +145,8 @@ export async function updateCategory(
         slug,
         color,
         icon,
+        parentId,
+        defaultExpanded,
       })
       .where(eq(categories.id, categoryId));
 
@@ -228,6 +241,7 @@ export async function createBookmark(
     search_results: string;
     categoryId: string;
     isFavorite: string;
+    isRecommended: string;
     isArchived: string;
     isDofollow: string;
     keyFeatures?: string;
@@ -249,6 +263,7 @@ export async function createBookmark(
     const search_results = formData.search_results;
     const categoryId = formData.categoryId;
     const isFavorite = formData.isFavorite === "true";
+    const isRecommended = formData.isRecommended === "true";
     const isArchived = formData.isArchived === "true";
     const isDofollow = formData.isDofollow === "true";
     const keyFeatures = formData.keyFeatures ? JSON.parse(formData.keyFeatures as string) : [];
@@ -272,6 +287,7 @@ export async function createBookmark(
       categoryId: categoryId === "none" ? null : parseInt(categoryId, 10),
       search_results: search_results || null,
       isFavorite,
+      isRecommended,
       isArchived,
       isDofollow,
       favicon,
@@ -308,6 +324,7 @@ export async function updateBookmark(
     search_results: string;
     categoryId: string;
     isFavorite: string;
+    isRecommended: string;
     isArchived: string;
     isDofollow: string;
     keyFeatures?: string;
@@ -338,6 +355,7 @@ export async function updateBookmark(
     const search_results = formData.search_results;
     const categoryId = formData.categoryId;
     const isFavorite = formData.isFavorite === "true";
+    const isRecommended = formData.isRecommended === "true";
     const isArchived = formData.isArchived === "true";
     const isDofollow = formData.isDofollow === "true";
     const keyFeatures = formData.keyFeatures ? JSON.parse(formData.keyFeatures as string) : undefined;
@@ -365,6 +383,7 @@ export async function updateBookmark(
         favicon,
         ogImage,
         isFavorite,
+        isRecommended,
         isArchived,
         isDofollow,
         ...(keyFeatures !== undefined && { keyFeatures }),
@@ -547,24 +566,20 @@ export async function scrapeUrl(
 
     const metadata = await metadataResponse.json();
 
-    // Get search results using Exa API
-    const exaResponse = await fetch("https://api.exa.ai/search", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.EXASEARCH_API_KEY}`,
-      },
-      body: JSON.stringify({
-        query: url,
-        num_results: 5,
-      }),
-    });
-
-    if (!exaResponse.ok) {
-      throw new Error("Failed to fetch search results from Exa");
+    // Get page content using Jina Reader API (free, no key required)
+    let searchResults: any = null;
+    try {
+      const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
+      const jinaResponse = await fetch(jinaUrl, {
+        headers: { "Accept": "text/markdown" },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (jinaResponse.ok) {
+        searchResults = { content: await jinaResponse.text() };
+      }
+    } catch (e) {
+      console.warn("Jina Reader failed, continuing without:", e);
     }
-
-    const searchResults = await exaResponse.json();
 
     return {
       success: true,
@@ -586,7 +601,7 @@ export async function scrapeUrl(
   }
 }
 
-export async function generateContent(url: string): Promise<GeneratedContent> {
+export async function generateContent(url: string, locale?: string): Promise<GeneratedContent> {
   try {
     if (!url) {
       throw new Error("URL is required");
@@ -625,22 +640,38 @@ export async function generateContent(url: string): Promise<GeneratedContent> {
       hasOgImage: !!metadata.ogImage,
     });
 
-    // Step 2: Get additional search context using Exa (if available)
+    // Step 2: Get page content using Jina Reader (free, no key required)
     let searchResults: any = null;
     let searchResultsStr = "";
 
-    if (process.env.EXASEARCH_API_KEY) {
-      try {
-        const exa = new Exa(process.env.EXASEARCH_API_KEY);
-        searchResults = await exa.getContents([url], {
-          text: true,
-          livecrawl: "fallback",
-        });
+    try {
+      const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
+      const jinaResponse = await fetch(jinaUrl, {
+        headers: { "Accept": "text/markdown" },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (jinaResponse.ok) {
+        searchResults = { content: await jinaResponse.text() };
         searchResultsStr = JSON.stringify(searchResults);
-        console.log("Exa search results obtained");
-      } catch (exaError) {
-        console.warn("Exa search failed, continuing without it:", exaError);
+        console.log("Jina Reader content obtained");
+
+        // Step 2.5: Tavily AI Search for real-time web context (anti-hallucination)
+        try {
+          const tavilyContext = await getProductContext(metadata.title, url);
+          if (tavilyContext) {
+            // Merge Tavily context with Jina content
+            searchResultsStr = JSON.stringify({
+              ...searchResults,
+              tavily: tavilyContext,
+            });
+            console.log(`Tavily context added: ${tavilyContext.length} chars`);
+          }
+        } catch (tavilyError) {
+          console.warn("Tavily search failed, continuing without it:", tavilyError);
+        }
       }
+    } catch (jinaError) {
+      console.warn("Jina Reader failed, continuing without it:", jinaError);
     }
 
     // Step 3: Generate tagline and description using AI
@@ -657,6 +688,7 @@ export async function generateContent(url: string): Promise<GeneratedContent> {
         title: metadata.title,
         metaDescription: metadata.description,
         searchResults: searchResultsStr,
+        locale: locale || "en",
       }),
     });
 
@@ -844,5 +876,255 @@ export async function importBookmarksFromJSON(
     return {
       error: error instanceof Error ? error.message : "Failed to import bookmarks",
     };
+  }
+}
+
+// ========== Collection Actions ==========
+
+export async function createCollection(
+  prevState: ActionState | null,
+  formData: { title: string; description: string; slug: string; coverImage?: string },
+): Promise<ActionState> {
+  try {
+    await db.insert(collections).values({
+      title: formData.title,
+      description: formData.description,
+      slug: formData.slug || generateSlug(formData.title),
+      coverImage: formData.coverImage || null,
+    });
+    revalidatePath("/hi-studio");
+    revalidatePath("/collections");
+    return { success: true };
+  } catch (err) {
+    console.error("Error creating collection:", err);
+    return { error: "Failed to create collection" };
+  }
+}
+
+export async function updateCollection(
+  prevState: ActionState | null,
+  formData: { id: string; title: string; description: string; slug: string; coverImage?: string },
+): Promise<ActionState> {
+  try {
+    const id = parseInt(formData.id, 10);
+    await db.update(collections).set({
+      title: formData.title,
+      description: formData.description,
+      slug: formData.slug,
+      coverImage: formData.coverImage || null,
+    }).where(eq(collections.id, id));
+    revalidatePath("/hi-studio");
+    revalidatePath("/collections");
+    return { success: true };
+  } catch (err) {
+    console.error("Error updating collection:", err);
+    return { error: "Failed to update collection" };
+  }
+}
+
+export async function deleteCollection(
+  prevState: ActionState | null,
+  formData: { id: string },
+): Promise<ActionState> {
+  try {
+    const id = parseInt(formData.id, 10);
+    await db.delete(collectionItems).where(eq(collectionItems.collectionId, id));
+    await db.delete(collections).where(eq(collections.id, id));
+    revalidatePath("/hi-studio");
+    revalidatePath("/collections");
+    return { success: true };
+  } catch (err) {
+    console.error("Error deleting collection:", err);
+    return { error: "Failed to delete collection" };
+  }
+}
+
+export async function addCollectionItem(
+  prevState: ActionState | null,
+  formData: { collectionId: string; title: string; url: string; description?: string },
+): Promise<ActionState> {
+  try {
+    const collectionId = parseInt(formData.collectionId, 10);
+    const maxOrder = await db.select().from(collectionItems)
+      .where(eq(collectionItems.collectionId, collectionId))
+      .orderBy(asc(collectionItems.sortOrder));
+    const nextOrder = maxOrder.length > 0 ? (maxOrder[maxOrder.length - 1].sortOrder || 0) + 1 : 0;
+    await db.insert(collectionItems).values({
+      collectionId,
+      title: formData.title,
+      url: formData.url,
+      description: formData.description || null,
+      sortOrder: nextOrder,
+    });
+    revalidatePath("/hi-studio");
+    revalidatePath("/collections");
+    return { success: true };
+  } catch (err) {
+    console.error("Error adding collection item:", err);
+    return { error: "Failed to add collection item" };
+  }
+}
+
+export async function updateCollectionItem(
+  prevState: ActionState | null,
+  formData: { id: string; title: string; url: string; description?: string },
+): Promise<ActionState> {
+  try {
+    const id = parseInt(formData.id, 10);
+    await db.update(collectionItems).set({
+      title: formData.title,
+      url: formData.url,
+      description: formData.description || null,
+    }).where(eq(collectionItems.id, id));
+    revalidatePath("/hi-studio");
+    revalidatePath("/collections");
+    return { success: true };
+  } catch (err) {
+    console.error("Error updating collection item:", err);
+    return { error: "Failed to update collection item" };
+  }
+}
+
+export async function deleteCollectionItem(
+  prevState: ActionState | null,
+  formData: { id: string },
+): Promise<ActionState> {
+  try {
+    const id = parseInt(formData.id, 10);
+    await db.delete(collectionItems).where(eq(collectionItems.id, id));
+    revalidatePath("/hi-studio");
+    revalidatePath("/collections");
+    return { success: true };
+  } catch (err) {
+    console.error("Error deleting collection item:", err);
+    return { error: "Failed to delete collection item" };
+  }
+}
+
+// ========== Friendly Links ==========
+
+export async function createFriendlyLink(
+  prevState: ActionState | null,
+  formData: { title: string; url: string; description: string; sortOrder: string },
+): Promise<ActionState> {
+  try {
+    await db.insert(friendlyLinks).values({
+      title: formData.title,
+      url: formData.url,
+      description: formData.description || null,
+      sortOrder: parseInt(formData.sortOrder, 10) || 0,
+    });
+    revalidatePath("/hi-studio");
+    revalidatePath("/friendly-links");
+    return { success: true };
+  } catch (err) {
+    console.error("Error creating friendly link:", err);
+    return { error: "Failed to create friendly link" };
+  }
+}
+
+export async function updateFriendlyLink(
+  prevState: ActionState | null,
+  formData: { id: string; title: string; url: string; description: string; sortOrder: string },
+): Promise<ActionState> {
+  try {
+    const id = parseInt(formData.id, 10);
+    await db.update(friendlyLinks).set({
+      title: formData.title,
+      url: formData.url,
+      description: formData.description || null,
+      sortOrder: parseInt(formData.sortOrder, 10) || 0,
+      updatedAt: new Date(),
+    }).where(eq(friendlyLinks.id, id));
+    revalidatePath("/hi-studio");
+    revalidatePath("/friendly-links");
+    return { success: true };
+  } catch (err) {
+    console.error("Error updating friendly link:", err);
+    return { error: "Failed to update friendly link" };
+  }
+}
+
+export async function deleteFriendlyLink(
+  prevState: ActionState | null,
+  formData: { id: string },
+): Promise<ActionState> {
+  try {
+    const id = parseInt(formData.id, 10);
+    await db.delete(friendlyLinks).where(eq(friendlyLinks.id, id));
+    revalidatePath("/hi-studio");
+    revalidatePath("/friendly-links");
+    return { success: true };
+  } catch (err) {
+    console.error("Error deleting friendly link:", err);
+    return { error: "Failed to delete friendly link" };
+  }
+}
+
+// ========== Backlink Resources ==========
+
+export async function createBacklinkResource(
+  prevState: ActionState | null,
+  formData: { name: string; url: string; drScore: string; linkType: string; category: string; cost: string; description: string; sortOrder: string },
+): Promise<ActionState> {
+  try {
+    await db.insert(backlinkResources).values({
+      name: formData.name,
+      url: formData.url,
+      drScore: parseInt(formData.drScore, 10) || 0,
+      linkType: formData.linkType || "dofollow",
+      category: formData.category || "General",
+      cost: formData.cost || "Free",
+      description: formData.description || null,
+      sortOrder: parseInt(formData.sortOrder, 10) || 0,
+    });
+    revalidatePath("/hi-studio");
+    revalidatePath("/backlink-database");
+    return { success: true };
+  } catch (err) {
+    console.error("Error creating backlink resource:", err);
+    return { error: "Failed to create backlink resource" };
+  }
+}
+
+export async function updateBacklinkResource(
+  prevState: ActionState | null,
+  formData: { id: string; name: string; url: string; drScore: string; linkType: string; category: string; cost: string; description: string; sortOrder: string },
+): Promise<ActionState> {
+  try {
+    const id = parseInt(formData.id, 10);
+    await db.update(backlinkResources).set({
+      name: formData.name,
+      url: formData.url,
+      drScore: parseInt(formData.drScore, 10) || 0,
+      linkType: formData.linkType || "dofollow",
+      category: formData.category || "General",
+      cost: formData.cost || "Free",
+      description: formData.description || null,
+      sortOrder: parseInt(formData.sortOrder, 10) || 0,
+      updatedAt: new Date(),
+    }).where(eq(backlinkResources.id, id));
+    revalidatePath("/hi-studio");
+    revalidatePath("/backlink-database");
+    return { success: true };
+  } catch (err) {
+    console.error("Error updating backlink resource:", err);
+    return { error: "Failed to update backlink resource" };
+  }
+}
+
+export async function deleteBacklinkResource(
+  prevState: ActionState | null,
+  formData: { id: string },
+): Promise<ActionState> {
+  try {
+    const id = parseInt(formData.id, 10);
+    await db.delete(backlinkResources).where(eq(backlinkResources.id, id));
+    revalidatePath("/hi-studio");
+    revalidatePath("/backlink-database");
+    return { success: true };
+  } catch (err) {
+    console.error("Error deleting backlink resource:", err);
+    return { error: "Failed to delete backlink resource" };
   }
 }
